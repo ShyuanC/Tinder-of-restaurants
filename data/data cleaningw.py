@@ -39,4 +39,4 @@ def clean_yelp_data(input_file, output_file):
 
 
 # Usage
-clean_yelp_data('yelp_academic_dataset_business.json', 'cleaned_yelp_data_FL.csv')
+clean_yelp_data('yelp_academic_dataset_business.json', '../cleaned_yelp_data_FL.csv')

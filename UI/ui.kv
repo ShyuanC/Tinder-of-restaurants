@@ -1,0 +1,91 @@
+BoxLayout:
+    orientation: 'vertical'
+    spacing: 20
+    padding: 20
+    canvas.before:
+        Color:
+            rgba: (0.2, 0.6, 0.8, 1)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    Label:
+        text: "Welcome to Restaurant Recommender!"
+        font_size: '28sp'
+        bold: True
+        color: (1, 1, 1, 1)
+
+    BoxLayout:
+        orientation: 'horizontal'
+        spacing: 15
+        size_hint_y: None
+        height: 60
+
+        Button:
+            text: "🍝 Italian"
+            size_hint: None, None
+            size: 120, 60
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '20sp'
+            on_press: app.select_option('Italian')
+
+        Button:
+            text: "🍣 Japanese"
+            size_hint: None, None
+            size: 120, 60
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '20sp'
+            on_press: app.select_option('Japanese')
+
+        Button:
+            text: "🌮 Mexican"
+            size_hint: None, None
+            size: 120, 60
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '20sp'
+            on_press: app.select_option('Mexican')
+
+    BoxLayout:
+        orientation: 'horizontal'
+        spacing: 15
+        size_hint_y: None
+        height: 60
+
+        Button:
+            text: "🥗 Vegetarian"
+            size_hint: None, None
+            size: 120, 60
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '20sp'
+            on_press: app.select_option('Vegetarian')
+
+        Button:
+            text: "🍔 American"
+            size_hint: None, None
+            size: 120, 60
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '20sp'
+            on_press: app.select_option('American')
+
+        Button:
+            text: "🍜 Asian"
+            size_hint: None, None
+            size: 120, 60
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '20sp'
+            on_press: app.select_option('Asian')
+
+    Button:
+        text: "🚗 Get Recommendations"
+        size_hint_y: None
+        height: 60
+        background_color: (0.3, 0.7, 0.3, 1)
+        color: (1, 1, 1, 1)
+        font_size: '22sp'
+        on_press: app.get_recommendations()
