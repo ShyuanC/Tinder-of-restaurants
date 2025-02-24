@@ -5,7 +5,12 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
+import os
 
+# Get the current file directory
+current_dir = os.path.dirname(__file__)
+# Build the full path to the image in the assets folder
+food_image_path = os.path.join(current_dir, '..', 'assets', 'food.jpg')
 
 # Custom Styled Button with Rounded Corners
 class StyledButton(Button):
@@ -39,7 +44,7 @@ class DietScreen(Screen):
 
             # Dimmed background image with rounded corners
             Color(1, 1, 1, 0.9)
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, self.height * 0.65),
+            self.bg = RoundedRectangle(source= food_image_path, pos=(0, self.height * 0.65),
                                        size=(self.width, self.height * 0.3), radius=[20, 20, 20, 20])
             self.bind(size=self._update_bg, pos=self._update_bg)
 
@@ -74,7 +79,7 @@ class StyleScreen(Screen):
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
             Color(1, 1, 1, 0.6)
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height / 3),
+            self.bg = RoundedRectangle(source=food_image_path, pos=(0, layout.height / 3),
                                        size=(layout.width, layout.height / 3), radius=[20, 20, 20, 20])
             layout.bind(size=self._update_bg, pos=self._update_bg)
 
@@ -109,7 +114,7 @@ class ParkingScreen(Screen):
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
             Color(1, 1, 1, 0.6)
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height / 3),
+            self.bg = RoundedRectangle(source=food_image_path, pos=(0, layout.height / 3),
                                        size=(layout.width, layout.height / 3), radius=[20, 20, 20, 20])
             layout.bind(size=self._update_bg, pos=self._update_rect)
 
@@ -144,7 +149,7 @@ class SortScreen(Screen):
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
             Color(1, 1, 1, 0.6)
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height / 3),
+            self.bg = RoundedRectangle(source=food_image_path, pos=(0, layout.height / 3),
                                        size=(layout.width, layout.height / 3), radius=[20, 20, 20, 20])
             layout.bind(size=self._update_bg, pos=self._update_rect)
 
