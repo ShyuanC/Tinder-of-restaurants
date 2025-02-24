@@ -1,21 +1,11 @@
-"""
-
-Sorts by stars (highest rating first) instead of review count.
- Only includes restaurants with 30+ reviews for better accuracy.
- Sorting by "Distance" still works properly.
-Supports "Next Restaurant" button to cycle through multiple results.
-Ensures top-rated restaurants are always recommended first.
-
-what's more ?
-
-"""
-
 import pandas as pd
-import geocoder
-from geopy.distance import geodesic
+import requests
 
 # Load cleaned restaurant data (Ensure this file exists!)
 filtered_data = pd.read_csv("D:/Tinder-of-restaurants/cleaned_yelp_data_FL.csv")
+
+# API Key for ZIP Code Distance Lookup (Replace with your actual API key)
+ZIPCODE_API_KEY = "5pNGaMPQMNXcIfn0nWfW3mSEt5d4kLzvTeXoxQ4ZEiPfpRVwSfsgcWaU0BakOcnJ"
 
 
 class RestaurantRecommender:
@@ -23,26 +13,30 @@ class RestaurantRecommender:
         """Initialize with an empty recommendation list and index tracker."""
         self.recommendations = []
         self.current_index = 0
-        self.user_location = None  # Initialize user location
+        self.user_zip = None  # Store user's ZIP code
 
-    def get_user_location(self):
-        """Returns user's latitude and longitude (auto-detect or manual input)."""
-        location = geocoder.ip("me")  # Auto-detect location
-        if location.latlng:
-            return tuple(location.latlng)  # (latitude, longitude)
+    def set_user_zip(self, zip_code):
+        """Set user ZIP code from UI."""
+        self.user_zip = zip_code
 
-        print("Could not auto-detect location. Please enter manually.")
-        lat = float(input("Enter your latitude: "))
-        lon = float(input("Enter your longitude: "))
-        return (lat, lon)
+    def get_zip_distance(self, restaurant_zip):
+        """Estimates distance between user ZIP and restaurant ZIP using an API."""
+        if not self.user_zip:
+            return "Distance unavailable"
 
-    def calculate_distance(self, restaurant):
-        """Calculate distance between user and restaurant in miles."""
-        if not self.user_location:
-            self.user_location = self.get_user_location()
+        # Call ZIP Code Distance API
+        try:
+            response = requests.get(
+                f"https://www.zipcodeapi.com/rest/{ZIPCODE_API_KEY}/distance.json/{self.user_zip}/{restaurant_zip}/mile"
+            )
+            data = response.json()
 
-        restaurant_location = (restaurant["latitude"], restaurant["longitude"])
-        return geodesic(self.user_location, restaurant_location).miles
+            if "distance" in data:
+                return f"Within {round(data['distance'] / 10) * 10} miles"  # Round to nearest 10 miles
+        except requests.exceptions.RequestException:
+            print("Error fetching distance from API. Using default estimate.")
+
+        return "Distance unavailable"
 
     def recommend_restaurants(self, user_diet, sort_preference="Reviews"):
         """Return a list of restaurants matching the user’s dietary preference and sorting preference."""
@@ -55,26 +49,29 @@ class RestaurantRecommender:
         if matching_restaurants.empty:
             return [{"error": f"No matching restaurants found for {user_diet}."}]
 
-        # **Sorting Logic Based on User Preference**
         if sort_preference == "Reviews":
-            # Exclude restaurants with fewer than 30 reviews and sort by highest rating (stars)
+            # **Fix: Ensure at least some restaurants are shown**
             matching_restaurants = matching_restaurants[matching_restaurants["review_count"] >= 30]
+            if matching_restaurants.empty():  # Fallback to show at least some results
+                matching_restaurants = filtered_data[
+                    filtered_data['categories'].str.contains(user_diet, case=False, na=False)]
+
             matching_restaurants = matching_restaurants.sort_values(
                 by=["stars", "review_count", "is_open"], ascending=[False, False, False]
             )
-        elif sort_preference == "Distance":
-            if "latitude" in matching_restaurants.columns and "longitude" in matching_restaurants.columns:
-                if not self.user_location:
-                    self.user_location = self.get_user_location()
 
-                # Compute distance for each restaurant
-                matching_restaurants["distance"] = matching_restaurants.apply(self.calculate_distance, axis=1)
+        elif sort_preference == "Distance":
+            if "postal_code" in matching_restaurants.columns:
+                if not self.user_zip:
+                    return [{"error": "Please enter your ZIP code first."}]
+
+                # Compute ZIP-based distance
+                matching_restaurants["distance"] = matching_restaurants["postal_code"].apply(self.get_zip_distance)
+
+                # **Fix: Sort by distance properly**
                 matching_restaurants = matching_restaurants.sort_values(by="distance", ascending=True)
             else:
-                return [{"error": "Distance data is not available in the dataset."}]
-
-        # Ensure Open Restaurants Are Recommended First
-        matching_restaurants = matching_restaurants.sort_values(by=["is_open"], ascending=False)
+                return [{"error": "ZIP code data is not available in the dataset."}]
 
         # Convert filtered results to a list of dictionaries
         self.recommendations = matching_restaurants.to_dict(orient="records")
@@ -95,23 +92,13 @@ class RestaurantRecommender:
         price_range = restaurant.get("price", "N/A")
 
         return {
-            "user_location": f"Your Location: {self.user_location}" if self.user_location else "Location Not Available",
+            "user_zip": f"Your ZIP Code: {self.user_zip}" if self.user_zip else "ZIP Not Available",
             "name": restaurant["name"],
             "address": f"{restaurant['address']}, {restaurant['city']}, {restaurant['state']}, {restaurant['postal_code']}",
             "stars": restaurant["stars"],
             "reviews": restaurant["review_count"],
             "categories": restaurant["categories"],
             "price": price_range,
-            "distance": f"{restaurant['distance']:.2f} miles" if "distance" in restaurant else "N/A",
+            "distance": restaurant.get("distance", "Distance unavailable"),
             "is_open": "Open" if restaurant["is_open"] == 1 else "Closed"
         }
-
-
-# **Test with User's Sorting Preference**
-if __name__ == "__main__":
-    recommender = RestaurantRecommender()
-    recommender.recommend_restaurants("Vegetarian", "Distance")  # Test sorting by Distance
-
-    # Print first 5 recommendations
-    for _ in range(5):
-        print(recommender.get_next_restaurant())
