@@ -7,24 +7,46 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 
 
+# Custom Styled Button with Rounded Corners
+class StyledButton(Button):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (None, None)
+        self.size = (220, 70)
+        self.font_size = '22sp'
+        self.color = (1, 1, 1, 1)  # White text
+        self.background_color = (0, 0, 0, 0)  # Transparent background
+        self.border = (16, 16, 16, 16)
+
+        with self.canvas.before:
+            Color(0.2, 0.6, 0.3, 1)  # Custom greenish color
+            self.rounded_rect = RoundedRectangle(size=self.size, pos=self.pos, radius=[25])
+            self.bind(pos=self._update_rect, size=self._update_rect)
+
+    def _update_rect(self, instance, value):
+        self.rounded_rect.pos = instance.pos
+        self.rounded_rect.size = instance.size
+
+
 class DietScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = BoxLayout(orientation='vertical', spacing=30, padding=30)
         with layout.canvas.before:
             Color(1, 1, 0.8, 1)  # Light yellow background
-            self.rect = Rectangle(size=layout.size, pos=layout.pos)
+            self.rect = Rectangle(size=self.size, pos=self.pos)
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
-            # Add dimmed background image with rounded corners
-            Color(1, 1, 1, 0.6)  # Dimmed overlay
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height/3), size=(layout.width, layout.height/3), radius=[20, 20, 20, 20])
-            layout.bind(size=self._update_bg, pos=self._update_bg)
+            # Dimmed background image with rounded corners
+            Color(1, 1, 1, 0.9)
+            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, self.height * 0.65),
+                                       size=(self.width, self.height * 0.3), radius=[20, 20, 20, 20])
+            self.bind(size=self._update_bg, pos=self._update_bg)
 
         layout.add_widget(Label(text="Select your diet preference", font_size='28sp', bold=True, color=(0, 0, 0, 1)))
         diet_options = ["Vegetarian", "Vegan", "Gluten-Free", "Keto", "Paleo"]
         for diet in diet_options:
-            btn = Button(text=diet, size_hint=(None, None), size=(220, 70), font_size='22sp', background_color=(0.2, 0.6, 0.3, 1), color=(1, 1, 1, 1))
+            btn = StyledButton(text=diet)
             btn.bind(on_press=lambda instance, d=diet: self.select_option(d))
             layout.add_widget(btn)
         self.add_widget(layout)
@@ -38,8 +60,8 @@ class DietScreen(Screen):
         self.rect.size = instance.size
 
     def _update_bg(self, instance, value):
-        self.bg.pos = (0, instance.height/3)
-        self.bg.size = (instance.width, instance.height/3)
+        self.bg.pos = (0, instance.height / 3)
+        self.bg.size = (instance.width, instance.height / 3)
 
 
 class StyleScreen(Screen):
@@ -47,19 +69,19 @@ class StyleScreen(Screen):
         super().__init__(**kwargs)
         layout = BoxLayout(orientation='vertical', spacing=30, padding=30)
         with layout.canvas.before:
-            Color(1, 1, 0.8, 1)  # Light yellow background
+            Color(1, 1, 0.8, 1)
             self.rect = Rectangle(size=layout.size, pos=layout.pos)
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
-            # Add dimmed background image with rounded corners
-            Color(1, 1, 1, 0.6)  # Dimmed overlay
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height/3), size=(layout.width, layout.height/3), radius=[20, 20, 20, 20])
+            Color(1, 1, 1, 0.6)
+            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height / 3),
+                                       size=(layout.width, layout.height / 3), radius=[20, 20, 20, 20])
             layout.bind(size=self._update_bg, pos=self._update_bg)
 
         layout.add_widget(Label(text="Select your dining style", font_size='28sp', bold=True, color=(0, 0, 0, 1)))
         style_options = ["Casual", "Fine Dining", "Fast Food", "Café", "Buffet"]
         for style in style_options:
-            btn = Button(text=style, size_hint=(None, None), size=(220, 70), font_size='22sp', background_color=(0.3, 0.4, 0.6, 1), color=(1, 1, 1, 1))
+            btn = StyledButton(text=style)
             btn.bind(on_press=lambda instance, s=style: self.select_option(s))
             layout.add_widget(btn)
         self.add_widget(layout)
@@ -73,8 +95,8 @@ class StyleScreen(Screen):
         self.rect.size = instance.size
 
     def _update_bg(self, instance, value):
-        self.bg.pos = (0, instance.height/3)
-        self.bg.size = (instance.width, instance.height/3)
+        self.bg.pos = (0, instance.height / 3)
+        self.bg.size = (instance.width, instance.height / 3)
 
 
 class ParkingScreen(Screen):
@@ -82,19 +104,19 @@ class ParkingScreen(Screen):
         super().__init__(**kwargs)
         layout = BoxLayout(orientation='vertical', spacing=30, padding=30)
         with layout.canvas.before:
-            Color(1, 1, 0.8, 1)  # Light yellow background
+            Color(1, 1, 0.8, 1)
             self.rect = Rectangle(size=layout.size, pos=layout.pos)
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
-            # Add dimmed background image with rounded corners
-            Color(1, 1, 1, 0.6)  # Dimmed overlay
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height/3), size=(layout.width, layout.height/3), radius=[20, 20, 20, 20])
+            Color(1, 1, 1, 0.6)
+            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height / 3),
+                                       size=(layout.width, layout.height / 3), radius=[20, 20, 20, 20])
             layout.bind(size=self._update_bg, pos=self._update_rect)
 
         layout.add_widget(Label(text="Do you need parking?", font_size='28sp', bold=True, color=(0, 0, 0, 1)))
         parking_options = ["Yes", "No"]
         for parking in parking_options:
-            btn = Button(text=parking, size_hint=(None, None), size=(220, 70), font_size='22sp', background_color=(0.4, 0.5, 0.7, 1), color=(1, 1, 1, 1))
+            btn = StyledButton(text=parking)
             btn.bind(on_press=lambda instance, p=parking: self.select_option(p))
             layout.add_widget(btn)
         self.add_widget(layout)
@@ -108,8 +130,8 @@ class ParkingScreen(Screen):
         self.rect.size = instance.size
 
     def _update_bg(self, instance, value):
-        self.bg.pos = (0, instance.height/3)
-        self.bg.size = (instance.width, instance.height/3)
+        self.bg.pos = (0, instance.height / 3)
+        self.bg.size = (instance.width, instance.height / 3)
 
 
 class SortScreen(Screen):
@@ -117,19 +139,19 @@ class SortScreen(Screen):
         super().__init__(**kwargs)
         layout = BoxLayout(orientation='vertical', spacing=30, padding=30)
         with layout.canvas.before:
-            Color(1, 1, 0.8, 1)  # Light yellow background
+            Color(1, 1, 0.8, 1)
             self.rect = Rectangle(size=layout.size, pos=layout.pos)
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
-            # Add dimmed background image with rounded corners
-            Color(1, 1, 1, 0.6)  # Dimmed overlay
-            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height/3), size=(layout.width, layout.height/3), radius=[20, 20, 20, 20])
+            Color(1, 1, 1, 0.6)
+            self.bg = RoundedRectangle(source='assets/food.jpg', pos=(0, layout.height / 3),
+                                       size=(layout.width, layout.height / 3), radius=[20, 20, 20, 20])
             layout.bind(size=self._update_bg, pos=self._update_rect)
 
         layout.add_widget(Label(text="How would you like to sort the results?", font_size='28sp', bold=True, color=(0, 0, 0, 1)))
         sort_options = ["Distance", "Reviews"]
         for sort in sort_options:
-            btn = Button(text=sort, size_hint=(None, None), size=(220, 70), font_size='22sp', background_color=(0.5, 0.6, 0.7, 1), color=(1, 1, 1, 1))
+            btn = StyledButton(text=sort)
             btn.bind(on_press=lambda instance, so=sort: self.select_option(so))
             layout.add_widget(btn)
         self.add_widget(layout)
@@ -143,11 +165,11 @@ class SortScreen(Screen):
         self.rect.size = instance.size
 
     def _update_bg(self, instance, value):
-        self.bg.pos = (0, instance.height/3)
-        self.bg.size = (instance.width, instance.height/3)
+        self.bg.pos = (0, instance.height / 3)
+        self.bg.size = (instance.width, instance.height / 3)
 
 
-class RestaurantRecommenderApp(App):
+class RestaurantTinderApp(App):
     def build(self):
         sm = ScreenManager()
         sm.add_widget(DietScreen(name='diet'))
@@ -159,4 +181,4 @@ class RestaurantRecommenderApp(App):
 
 
 if __name__ == '__main__':
-    RestaurantRecommenderApp().run()
+    RestaurantTinderApp().run()

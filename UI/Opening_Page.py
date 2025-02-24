@@ -21,9 +21,11 @@ class OpeningPage(App):
 
     def switch_to_main_app(self, dt):
         self.stop()
-        from main import RestaurantRecommenderApp
-        RestaurantRecommenderApp().run()
+        from UI.User_Prompt import RestaurantTinderApp
+        RestaurantTinderApp().run()
 
 
 if __name__ == '__main__':
     OpeningPage().run()
+
+
