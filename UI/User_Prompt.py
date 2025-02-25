@@ -7,9 +7,12 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 from modules.restaurant_recommender import RestaurantRecommender
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.image import AsyncImage
 from modules.google_review import GoogleReviews
-
+import os
+import csv
+from kivy.uix.image import AsyncImage
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
 # Custom Styled Button with Rounded Corners
 class StyledButton(Button):
     def __init__(self, **kwargs):
@@ -161,16 +164,18 @@ class ZipCodeScreen(Screen):
         else:
             self.label.text = "Invalid ZIP Code! Please enter a 5-digit ZIP."
 
-
 class SortScreen(Screen):
+    CSV_FILE = "saved_restaurants.csv"
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50, 50, 50])
 
         self.google_reviews = GoogleReviews()  # Initialize GoogleReviews API handler
+        self.saved_restaurants = self.load_saved_restaurants()  # Load saved restaurants
 
         # Restaurant Image (Async loading)
-        self.restaurant_image = AsyncImage(size_hint=(1, None), height=500)
+        self.restaurant_image = AsyncImage(size_hint=(1, None), height=300)
         self.restaurant_image.bind(on_error=self.set_default_image)  # Handle image errors
         self.layout.add_widget(self.restaurant_image)
 
@@ -191,9 +196,15 @@ class SortScreen(Screen):
 
         self.layout.add_widget(scroll_view)
 
-        self.next_button = StyledButton(text="Next ")
-        self.next_button.bind(on_press=self.show_new_restaurant)
-        self.layout.add_widget(self.next_button)
+        # Add "View Added" button at the bottom-right corner
+        self.view_added_button = Button(
+            text="View Added",
+            size_hint=(None, None),
+            size=(180, 60),
+            pos_hint={"right": 1, "bottom": 1}
+        )
+        self.view_added_button.bind(on_press=self.show_saved_restaurants)
+        self.layout.add_widget(self.view_added_button)
 
         self.add_widget(self.layout)
 
@@ -201,6 +212,7 @@ class SortScreen(Screen):
         self.user_zip = None
         self.user_sort_preference = None
         self.user_diet = None  # Store user's food preference
+        self.current_restaurant = None  # Track the currently displayed restaurant
 
     def _update_label_height(self, instance, size):
         """Dynamically adjust the label height based on text size."""
@@ -208,9 +220,6 @@ class SortScreen(Screen):
 
     def on_pre_enter(self):
         """Fetch recommendations based on user input."""
-        print(f"User sorting preference: {self.user_sort_preference}")
-        print(f"User selected diet: {self.user_diet}")
-
         if not self.user_diet:
             self.user_diet = "Vietnamese"  # Default to avoid crashes
 
@@ -223,10 +232,11 @@ class SortScreen(Screen):
     def show_new_restaurant(self, instance):
         """Fetch and display the next restaurant recommendation."""
         recommendation = self.recommender.get_next_restaurant()
+        self.current_restaurant = recommendation  # Store the current restaurant
 
         if "error" in recommendation:
             self.restaurant_label.text = recommendation["error"]
-            self.restaurant_image.source = "assets/no_image_available.jpg"  # Use local image instead
+            self.restaurant_image.source = "assets/no_image_available.jpg"
         else:
             # Fetch image from Google Places API
             photo_url = self.google_reviews.get_place_photo(
@@ -247,10 +257,70 @@ class SortScreen(Screen):
             )
             self.restaurant_label.markup = True  # Enable text markup for styling
 
+    def on_touch_move(self, touch):
+        """Detects swipe gestures."""
+        if touch.dx > 50:  # Right Swipe
+            self.save_restaurant()
+            self.show_new_restaurant(None)
+        elif touch.dx < -50:  # Left Swipe
+            self.show_new_restaurant(None)
+        return super().on_touch_move(touch)
+
+    def save_restaurant(self):
+        """Saves the current restaurant if not already saved."""
+        if not self.current_restaurant or "error" in self.current_restaurant:
+            return
+
+        restaurant_name = self.current_restaurant["name"]
+
+        # Check if restaurant is already saved
+        if restaurant_name in self.saved_restaurants:
+            print(f"{restaurant_name} is already saved.")
+            return
+
+        # Save to CSV
+        with open(self.CSV_FILE, "a", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow([restaurant_name])
+
+        self.saved_restaurants.add(restaurant_name)  # Add to memory
+        print(f"Saved: {restaurant_name}")
+
+    def load_saved_restaurants(self):
+        """Loads saved restaurants from CSV."""
+        saved = set()
+        if os.path.exists(self.CSV_FILE):
+            with open(self.CSV_FILE, "r", encoding="utf-8") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row:
+                        saved.add(row[0])
+        return saved
+
+    def show_saved_restaurants(self, instance):
+        """Displays a list of saved restaurants in a popup."""
+        content = BoxLayout(orientation="vertical", spacing=10, padding=10)
+
+        if not self.saved_restaurants:
+            label = Label(text="No restaurants saved yet.", font_size="20sp")
+            content.add_widget(label)
+        else:
+            for name in self.saved_restaurants:
+                label = Label(text=name, font_size="20sp", size_hint_y=None, height=40)
+                content.add_widget(label)
+
+        close_button = Button(text="Close", size_hint_y=None, height=50)
+        popup = Popup(title="Saved Restaurants", content=content, size_hint=(None, None), size=(400, 600))
+        close_button.bind(on_press=popup.dismiss)
+        content.add_widget(close_button)
+
+        popup.open()
+
     def set_default_image(self, instance, error):
         """Sets a default image if loading fails."""
         print("Failed to load image, using fallback.")
         self.restaurant_image.source = "assets/no_image_available.jpg"
+
 
 
 
