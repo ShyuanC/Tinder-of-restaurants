@@ -3,7 +3,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
-from kivy.uix.popup import Popup
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 from modules.restaurant_recommender import RestaurantRecommender
@@ -14,14 +13,14 @@ class StyledButton(Button):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (None, None)
-        self.size = (250, 70)  # Slightly larger
+        self.size = (250, 70)
         self.font_size = '22sp'
-        self.color = (1, 1, 1, 1)  # White text
+        self.color = (1, 1, 1, 1)
         self.background_color = (0, 0, 0, 0)  # Transparent background
         self.border = (20, 20, 20, 20)
 
         with self.canvas.before:
-            Color(0.15, 0.5, 0.25, 1)  # Deep green color for a modern look
+            Color(0.15, 0.5, 0.25, 1)
             self.rounded_rect = RoundedRectangle(size=self.size, pos=self.pos, radius=[30])
             self.bind(pos=self._update_rect, size=self._update_rect)
 
@@ -30,12 +29,12 @@ class StyledButton(Button):
         self.rounded_rect.size = instance.size
 
 
-# Base Screen Class with Fixed Text at the Top and Background Image
+# Base Screen Class with Background Image
 class BaseScreen(Screen):
     def __init__(self, title, options, next_screen, **kwargs):
         super().__init__(**kwargs)
+        self.next_screen = next_screen
 
-        # Main layout
         layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50, 50, 50])
 
         # Header Text
@@ -44,68 +43,121 @@ class BaseScreen(Screen):
             font_size='30sp',
             bold=True,
             color=(0, 0, 0, 1),
-            font_name="Roboto",
             size_hint=(1, None),
-            height=750  # Set fixed height so image does not push it down
+            height=1200
         )
-        layout.add_widget(header)  # Add header at the top
+        layout.add_widget(header)
 
         # Background Image
         with self.canvas.before:
-            Color(1, 1, 1, 0.75)  # Semi-transparent overlay
-            self.bg = Rectangle(source='D:/Tinder-of-restaurants/assets/food.jpg',
+            Color(1, 1, 1, 0.75)
+            self.bg = Rectangle(source='assets/food.jpg',
                                 pos=(0, self.height * 0.4),
                                 size=(self.width, self.height * 0.25))
             self.bind(size=self._update_bg, pos=self._update_bg)
 
-        # Buttons (Under Image)
+        # Buttons
         button_layout = BoxLayout(orientation='vertical', spacing=20, size_hint=(1, None))
         for option in options:
             btn = StyledButton(text=option)
-            btn.bind(on_press=lambda instance, opt=option: self.select_option(opt, next_screen))
+            btn.bind(on_press=self.get_callback(option))  # FIXED: Now correctly binding button presses
             button_layout.add_widget(btn)
 
         layout.add_widget(button_layout)
         self.add_widget(layout)
 
-    def select_option(self, option, next_screen):
-        print(f"Selected: {option}")
-        if next_screen:
-            self.manager.current = next_screen
+    def get_callback(self, option):
+        """Returns a function that correctly captures button press."""
+        return lambda instance: self.select_option(option)
+
+    def select_option(self, option):
+        """Store the user's selection and navigate correctly."""
+        print(f"User selected: {option} on screen {self.name}")
+
+        if self.name == "diet":
+            sort_screen = self.manager.get_screen("sort")
+            sort_screen.user_diet = option  # Store user-selected diet
+            self.manager.current = "style"  # Move to the next screen
+
+        elif self.name == "style":
+            sort_screen = self.manager.get_screen("sort")
+            sort_screen.user_style = option  # Store user-selected style
+            self.manager.current = "parking"
+
+        elif self.name == "parking":
+            sort_screen = self.manager.get_screen("sort")
+            sort_screen.user_parking = option  # Store user-selected parking preference
+            self.manager.current = "preference"
+
+        elif self.name == "preference":
+            sort_screen = self.manager.get_screen("sort")
+            sort_screen.user_sort_preference = option
+
+            if option == "Distance":
+                self.manager.current = "zipcode"
+            else:
+                self.manager.current = "sort"
 
     def _update_bg(self, instance, value):
-        self.bg.pos = (0, instance.height * 0.7)  # Keeps image below text
-        self.bg.size = (instance.width, instance.height * 0.3)  # Resizes dynamically
+        self.bg.pos = (0, instance.height * 0.7)
+        self.bg.size = (instance.width, instance.height * 0.3)
 
 
-# Individual Screens
+# Updated Prompt Screens
 class DietScreen(BaseScreen):
     def __init__(self, **kwargs):
-        super().__init__("Select Your Diet Preference",
-                         ["Vegetarian", "Vegan", "Gluten-Free", "Keto", "Paleo"],
+        super().__init__("What type of food?",
+                         ["Vietnamese", "Italian", "American", "Burgers", "Salad"],
                          "style", **kwargs)
 
 
 class StyleScreen(BaseScreen):
     def __init__(self, **kwargs):
-        super().__init__("Select Your Dining Style",
-                         ["Casual", "Fine Dining", "Fast Food", "Café", "Buffet"],
+        super().__init__("Dining Experience?",
+                         ["Casual", "Fine Dining", "Food Truck", "Sports Bar", "Cafe"],
                          "parking", **kwargs)
 
 
 class ParkingScreen(BaseScreen):
     def __init__(self, **kwargs):
-        super().__init__("Do You Need Parking?",
+        super().__init__("Need Parking Onsite?",
                          ["Yes", "No"],
                          "preference", **kwargs)
 
 
-# **Restored Screen: "What Matters Most?"**
 class PreferenceScreen(BaseScreen):
     def __init__(self, **kwargs):
-        super().__init__("What matters most?",
+        super().__init__("What matters most for you?",
                          ["Distance", "Reviews"],
-                         "sort", **kwargs)
+                         None, **kwargs)
+
+
+class ZipCodeScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50, 50, 50])
+
+        self.label = Label(text="Enter your ZIP Code:", font_size='24sp', bold=True)
+        self.layout.add_widget(self.label)
+
+        self.zip_input = TextInput(hint_text="e.g., 33602", multiline=False, font_size='20sp')
+        self.layout.add_widget(self.zip_input)
+
+        self.submit_button = StyledButton(text="Submit")
+        self.submit_button.bind(on_press=self.save_zip_code)
+        self.layout.add_widget(self.submit_button)
+
+        self.add_widget(self.layout)
+
+    def save_zip_code(self, instance):
+        user_zip = self.zip_input.text.strip()
+        if user_zip.isdigit() and len(user_zip) == 5:
+            sort_screen = self.manager.get_screen("sort")
+            sort_screen.user_zip = user_zip
+            sort_screen.recommender.set_user_zip(user_zip)
+            self.manager.current = "sort"
+        else:
+            self.label.text = "Invalid ZIP Code! Please enter a 5-digit ZIP."
 
 
 class SortScreen(Screen):
@@ -113,107 +165,63 @@ class SortScreen(Screen):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50, 50, 50])
 
-        # Label to display user ZIP (only shown if sorting by Distance)
-        self.zip_label = Label(text="", font_size='20sp', bold=True)
-        self.layout.add_widget(self.zip_label)
-
-        # Label to display recommended restaurant
-        self.restaurant_label = Label(text="Fetching recommendation...", font_size='24sp', bold=True)
+        self.restaurant_label = Label(text="Fetching restaurant recommendations...", font_size='24sp', bold=True)
         self.layout.add_widget(self.restaurant_label)
 
-        # "Next Restaurant" Button
-        self.next_button = Button(text="Next Restaurant", size_hint=(None, None), size=(250, 70))
+        self.next_button = StyledButton(text="Next Restaurant")
         self.next_button.bind(on_press=self.show_new_restaurant)
         self.layout.add_widget(self.next_button)
 
         self.add_widget(self.layout)
 
-        # Initialize recommender
         self.recommender = RestaurantRecommender()
+        self.user_zip = None
         self.user_sort_preference = None
-        self.user_zip = None  # Store ZIP code from UI input
+        self.user_diet = None  # Store user's food preference
 
     def on_pre_enter(self):
-        """Check if sorting preference is Distance, then prompt for ZIP."""
-        prev_screen_name = self.manager.previous()
-        if prev_screen_name:
-            prev_screen = self.manager.get_screen(prev_screen_name)
-            if hasattr(prev_screen, "selected_option"):
-                self.user_sort_preference = prev_screen.selected_option
+        """Fetch recommendations based on user input."""
+        print(f"User sorting preference: {self.user_sort_preference}")
+        print(f"User selected diet: {self.user_diet}")
 
-            if self.user_sort_preference == "Distance":
-                self.ask_for_zip()
+        if not self.user_diet:
+            self.user_diet = "Vietnamese"  # Default to avoid crashes
 
-    def ask_for_zip(self):
-        """Popup to ask the user for their ZIP code."""
-        box = BoxLayout(orientation='vertical', spacing=10, padding=20)
-
-        label = Label(text="Enter your ZIP code:", font_size='22sp', bold=True)
-        self.zip_input = TextInput(hint_text="e.g., 10001", multiline=False, font_size='20sp')
-
-        submit_button = Button(text="Submit", size_hint=(None, None), size=(200, 50))
-        submit_button.bind(on_press=self.save_zip_code)
-
-        box.add_widget(label)
-        box.add_widget(self.zip_input)
-        box.add_widget(submit_button)
-
-        self.popup = Popup(title="ZIP Code Required", content=box, size_hint=(None, None), size=(400, 250))
-        self.popup.open()  # Ensure popup is forced to appear
-
-    def save_zip_code(self, instance):
-        """Save the entered ZIP code and start recommendations."""
-        self.user_zip = self.zip_input.text.strip()
-        self.popup.dismiss()
-
-        if self.user_zip:
-            self.recommender.set_user_zip(self.user_zip)  # Store ZIP in recommender
-            self.zip_label.text = f"Your ZIP: {self.user_zip}"
-            self.show_new_restaurant(None)  # Start showing recommendations
+        if self.user_sort_preference == "Distance" and not self.user_zip:
+            self.manager.current = "zipcode"
+        else:
+            self.recommender.recommend_restaurants(user_diet=self.user_diet, sort_preference=self.user_sort_preference)
+            self.show_new_restaurant(None)
 
     def show_new_restaurant(self, instance):
         """Fetch and display the next restaurant recommendation."""
-        if self.user_sort_preference == "Distance" and not self.user_zip:
-            self.ask_for_zip()  # Ask for ZIP if sorting by distance
-            return
-
         recommendation = self.recommender.get_next_restaurant()
 
         if "error" in recommendation:
             self.restaurant_label.text = recommendation["error"]
-            self.zip_label.text = ""
         else:
-            # Show ZIP location only if sorting by Distance
-            if self.user_sort_preference == "Distance":
-                self.zip_label.text = f"Your ZIP: {self.user_zip}"
-
-            # Ensure distance is correctly displayed
-            distance_display = recommendation.get("distance", "Distance Not Available")
-
-            # Update restaurant details
             self.restaurant_label.text = (
                 f"{recommendation['name']}\n"
                 f"{recommendation['address']}\n"
-                f"{recommendation['stars']} Stars ({recommendation['reviews']} Reviews)\n"
+                f"{recommendation['stars']} Stars ({recommendation['reviews']} Reviews)\n"  
                 f"Price: {recommendation['price']}\n"
                 f"{recommendation['categories']}\n"
-                f"Distance: {distance_display}\n"
+                f"Distance: {recommendation.get('distance', 'Distance Not Available')}\n"
                 f"{recommendation['is_open']}"
             )
 
 
-# App Class
 class RestaurantTinderApp(App):
     def build(self):
         sm = ScreenManager()
         sm.add_widget(DietScreen(name='diet'))
         sm.add_widget(StyleScreen(name='style'))
         sm.add_widget(ParkingScreen(name='parking'))
-        sm.add_widget(PreferenceScreen(name='preference'))  # Restored "What Matters Most?" page
+        sm.add_widget(PreferenceScreen(name='preference'))
+        sm.add_widget(ZipCodeScreen(name='zipcode'))
         sm.add_widget(SortScreen(name='sort'))
         sm.current = 'diet'
         return sm
-
 
 if __name__ == '__main__':
     RestaurantTinderApp().run()

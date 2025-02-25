@@ -2,11 +2,13 @@ import pandas as pd
 import requests
 
 # Load cleaned restaurant data (Ensure this file exists!)
-filtered_data = pd.read_csv("D:/Tinder-of-restaurants/cleaned_yelp_data_FL.csv")
+filtered_data = pd.read_csv("cleaned_yelp_data_FL.csv")
+
+# Ensure 'categories' column contains only strings and replaces NaN with an empty string
+filtered_data["categories"] = filtered_data["categories"].astype(str).fillna("").str.lower()
 
 # API Key for ZIP Code Distance Lookup (Replace with your actual API key)
 ZIPCODE_API_KEY = "5pNGaMPQMNXcIfn0nWfW3mSEt5d4kLzvTeXoxQ4ZEiPfpRVwSfsgcWaU0BakOcnJ"
-
 
 class RestaurantRecommender:
     def __init__(self):
@@ -21,10 +23,9 @@ class RestaurantRecommender:
 
     def get_zip_distance(self, restaurant_zip):
         """Estimates distance between user ZIP and restaurant ZIP using an API."""
-        if not self.user_zip:
-            return "Distance unavailable"
+        if not self.user_zip or not restaurant_zip:
+            return 9999  # ✅ Fix: Return a high number instead of "Distance unavailable"
 
-        # Call ZIP Code Distance API
         try:
             response = requests.get(
                 f"https://www.zipcodeapi.com/rest/{ZIPCODE_API_KEY}/distance.json/{self.user_zip}/{restaurant_zip}/mile"
@@ -32,29 +33,35 @@ class RestaurantRecommender:
             data = response.json()
 
             if "distance" in data:
-                return f"Within {round(data['distance'] / 10) * 10} miles"  # Round to nearest 10 miles
+                return round(data['distance'], 2)  # ✅ Fix: Ensure valid numeric output
         except requests.exceptions.RequestException:
             print("Error fetching distance from API. Using default estimate.")
 
-        return "Distance unavailable"
+        return 9999  # ✅ Fix: Ensure a numeric value is always returned
 
     def recommend_restaurants(self, user_diet, sort_preference="Reviews"):
         """Return a list of restaurants matching the user’s dietary preference and sorting preference."""
 
-        # Filter restaurants based on diet preference
+        # Ensure at least some data is available
+        if filtered_data.empty:
+            return [{"error": "No restaurants available in the dataset."}]
+
+        # **Filtering based on user diet selection**
         matching_restaurants = filtered_data[
             filtered_data['categories'].str.contains(user_diet, case=False, na=False)
-        ]
+        ].copy()  # ✅ Fix: Use .copy() to avoid modifying a slice of the DataFrame
 
         if matching_restaurants.empty:
-            return [{"error": f"No matching restaurants found for {user_diet}."}]
+            return [{"error": f"No matching restaurants found for '{user_diet}'."}]
 
+        # **Sorting Logic Based on User Preference**
         if sort_preference == "Reviews":
-            # **Fix: Ensure at least some restaurants are shown**
+            # Only include restaurants with at least 30 reviews
             matching_restaurants = matching_restaurants[matching_restaurants["review_count"] >= 30]
-            if matching_restaurants.empty():  # Fallback to show at least some results
+            if matching_restaurants.empty:
                 matching_restaurants = filtered_data[
-                    filtered_data['categories'].str.contains(user_diet, case=False, na=False)]
+                    filtered_data['categories'].str.contains(user_diet, case=False, na=False)
+                ].copy()
 
             matching_restaurants = matching_restaurants.sort_values(
                 by=["stars", "review_count", "is_open"], ascending=[False, False, False]
@@ -65,10 +72,15 @@ class RestaurantRecommender:
                 if not self.user_zip:
                     return [{"error": "Please enter your ZIP code first."}]
 
-                # Compute ZIP-based distance
-                matching_restaurants["distance"] = matching_restaurants["postal_code"].apply(self.get_zip_distance)
+                # ✅ Fix: Use `.loc[]` to avoid `SettingWithCopyWarning`
+                matching_restaurants.loc[:, "distance"] = matching_restaurants["postal_code"].apply(
+                    self.get_zip_distance)
 
-                # **Fix: Sort by distance properly**
+                # ✅ Fix: Convert to numeric and fill NaNs
+                matching_restaurants["distance"] = pd.to_numeric(matching_restaurants["distance"],
+                                                                 errors='coerce').fillna(9999)
+
+                # ✅ Fix: Sort by distance properly
                 matching_restaurants = matching_restaurants.sort_values(by="distance", ascending=True)
             else:
                 return [{"error": "ZIP code data is not available in the dataset."}]
@@ -88,7 +100,7 @@ class RestaurantRecommender:
         restaurant = self.recommendations[self.current_index]
         self.current_index = (self.current_index + 1) % len(self.recommendations)  # Loop over results
 
-        # Add price range if available
+        # Ensure price range is shown properly
         price_range = restaurant.get("price", "N/A")
 
         return {
