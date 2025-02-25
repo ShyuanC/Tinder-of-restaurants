@@ -1,7 +1,6 @@
 import pandas as pd
 import requests
 
-# Load cleaned restaurant data (Ensure this file exists!)
 filtered_data = pd.read_csv("cleaned_yelp_data_FL.csv")
 
 # Ensure 'categories' column contains only strings and replaces NaN with an empty string
@@ -18,11 +17,9 @@ class RestaurantRecommender:
         self.user_zip = None  # Store user's ZIP code
 
     def set_user_zip(self, zip_code):
-        """Set user ZIP code from UI."""
         self.user_zip = zip_code
 
     def get_zip_distance(self, restaurant_zip):
-        """Estimates distance between user ZIP and restaurant ZIP using an API."""
         if not self.user_zip or not restaurant_zip:
             return 9999  # ✅ Fix: Return a high number instead of "Distance unavailable"
 
@@ -40,7 +37,6 @@ class RestaurantRecommender:
         return 9999  # ✅ Fix: Ensure a numeric value is always returned
 
     def recommend_restaurants(self, user_diet, sort_preference="Reviews"):
-        """Return a list of restaurants matching the user’s dietary preference and sorting preference."""
 
         # Ensure at least some data is available
         if filtered_data.empty:
@@ -72,15 +68,12 @@ class RestaurantRecommender:
                 if not self.user_zip:
                     return [{"error": "Please enter your ZIP code first."}]
 
-                # ✅ Fix: Use `.loc[]` to avoid `SettingWithCopyWarning`
                 matching_restaurants.loc[:, "distance"] = matching_restaurants["postal_code"].apply(
                     self.get_zip_distance)
 
-                # ✅ Fix: Convert to numeric and fill NaNs
                 matching_restaurants["distance"] = pd.to_numeric(matching_restaurants["distance"],
                                                                  errors='coerce').fillna(9999)
 
-                # ✅ Fix: Sort by distance properly
                 matching_restaurants = matching_restaurants.sort_values(by="distance", ascending=True)
             else:
                 return [{"error": "ZIP code data is not available in the dataset."}]
@@ -92,7 +85,6 @@ class RestaurantRecommender:
         return self.get_next_restaurant()
 
     def get_next_restaurant(self):
-        """Return the next restaurant in the recommendation list."""
         if not self.recommendations:
             return {"error": "No recommendations available."}
 
