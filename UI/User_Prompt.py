@@ -175,7 +175,7 @@ class SortScreen(Screen):
         self.saved_restaurants = self.load_saved_restaurants()  # Load saved restaurants
 
         # Restaurant Image (Async loading)
-        self.restaurant_image = AsyncImage(size_hint=(1, None), height=300)
+        self.restaurant_image = AsyncImage(size_hint=(1, None), height=600)
         self.restaurant_image.bind(on_error=self.set_default_image)  # Handle image errors
         self.layout.add_widget(self.restaurant_image)
 

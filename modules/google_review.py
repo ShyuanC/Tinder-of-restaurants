@@ -32,7 +32,7 @@ class GoogleReviews:
         if restaurant_name in self.places_cache:
             return self.places_cache[restaurant_name]
 
-        # Step 1: Search for the place
+        #Search for the place
         search_url = (
             "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
             f"?input={restaurant_name} {city} {state}"
@@ -50,7 +50,7 @@ class GoogleReviews:
 
         place_id = data["candidates"][0]["place_id"]
 
-        # Step 2: Get place details including photos
+        #  Get place details including photos
         details_url = (
             f"https://maps.googleapis.com/maps/api/place/details/json"
             f"?place_id={place_id}"
@@ -68,7 +68,7 @@ class GoogleReviews:
         photos = data["result"]["photos"]
         random_photo = random.choice(photos)  # Pick a random photo
 
-        # Step 3: Generate photo URL
+        #photo URL
         photo_reference = random_photo["photo_reference"]
         photo_url = (
             f"https://maps.googleapis.com/maps/api/place/photo"
@@ -76,7 +76,7 @@ class GoogleReviews:
             f"&key={GOOGLE_PLACES_API_KEY}"
         )
 
-        # Cache result
+        #Cache result
         self.places_cache[restaurant_name] = photo_url
 
         return photo_url

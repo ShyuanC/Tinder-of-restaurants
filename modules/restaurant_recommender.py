@@ -16,24 +16,24 @@ ZIPCODE_API_KEY = "7VsLpmFU8Hkh3ddldrrYMRMIqSAUHmzJOIS7Ig2mpSZvnC0fcSvZ3hzhmFvrS
 
 class RestaurantRecommender:
     def __init__(self):
-        """Initialize with an empty recommendation list, index tracker, and cache for ZIP distances."""
+        #Initialize with an empty recommendation list, index tracker, and cache for ZIP distances.
         self.recommendations = []
         self.current_index = 0
         self.user_zip = None  # Store user's ZIP code
         self.zip_distance_cache = {}  #  Cache to store computed ZIP distances
 
     def set_user_zip(self, zip_code):
-        """Ensure the ZIP code is a string without decimals"""
+        #Ensure the ZIP code is a string without decimals
         self.user_zip = str(zip_code).split(".")[0]  # Convert to string and remove decimals
 
     def get_zip_distance(self, restaurant_zip):
-        """Fetch the distance between user's ZIP and the restaurant's ZIP using an API."""
+        #Fetch the distance between user's ZIP and the restaurant's ZIP using an API.
         restaurant_zip = str(restaurant_zip).split(".")[0]  # Ensure ZIP is string without decimals
 
         if not self.user_zip or not restaurant_zip:
             return 9999  # Default large value if ZIP is missing
 
-        # **Check cache first to avoid unnecessary API calls**
+        # Check cache first to avoid unnecessary API calls
         if restaurant_zip in self.zip_distance_cache:
             return self.zip_distance_cache[restaurant_zip]
 
@@ -44,8 +44,14 @@ class RestaurantRecommender:
             )
 
             if response.status_code == 429:
-                print("⚠️ Too many requests! Skipping this ZIP to avoid rate limits.")
+                print("⚠️ Too many requests! Skipping this ZIP to avoid rate limits.") # NO MONEY SPEND PLZ
                 return 9999
+            if response.status_code == 200:
+                print("Distance available")
+
+            #⚠️⚠️⚠️: if user have "Distance" in their filter, only 10 results will be given due to the limitation of API usage
+            #⚠️⚠️️⚠️: "Distance will be shown as "NA" if user don't choose it as a filter, again, API limitation sucks.
+
 
             data = response.json()
             if "distance" in data:
@@ -58,11 +64,11 @@ class RestaurantRecommender:
         return 9999
 
     def recommend_restaurants(self, user_diet, sort_preference="Distance"):
-        """Filter restaurants based on diet, then sort by reviews or distance, returning top 10 closest places."""
+        #Filter restaurants based on diet, then sort by reviews or distance, returning top 10 closest places
         if filtered_data.empty:
             return [{"error": "No restaurants available in the dataset."}]
 
-        # **Step 1: Filter based on user diet selection**
+        # Filter based on user diet selection**
         matching_restaurants = filtered_data[
             filtered_data['categories'].str.contains(user_diet, case=False, na=False)
         ].copy()
@@ -73,7 +79,7 @@ class RestaurantRecommender:
         # **Step 2: Select 10 random restaurants before making API calls**
         matching_restaurants = matching_restaurants.sample(n=min(10, len(matching_restaurants)), random_state=42)
 
-        # **Step 3: Sorting Logic Based on User Preference**
+        #  Sorting Logic Based on User Preference**
         if sort_preference == "Reviews":
             # Only include restaurants with at least 30 reviews
             matching_restaurants = matching_restaurants[matching_restaurants["review_count"] >= 30]
@@ -98,7 +104,7 @@ class RestaurantRecommender:
             else:
                 return [{"error": "ZIP code data is not available in the dataset."}]
 
-        # **Step 4: Select top 10**
+        #  Select top 10
         self.recommendations = matching_restaurants.head(10).to_dict(orient="records")
         self.current_index = 0  # Reset index for new recommendations
 
