@@ -7,7 +7,7 @@ import os
 
 class OpeningPage(App):
     def build(self):
-        Window.size = (360 ,640)
+        Window.size = (500 ,1280)
         Window.clearcolor = (1, 0.71, 0.1, 0.9)
 
         def asset_path(filename):

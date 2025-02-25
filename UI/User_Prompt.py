@@ -6,11 +6,13 @@ from kivy.uix.textinput import TextInput
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 from modules.restaurant_recommender import RestaurantRecommender
-from modules.google_map_Module import get_place_info
-from modules.menu_module import scrape_yelp_menu
-
-
-
+from kivy.uix.scrollview import ScrollView
+from modules.google_review import GoogleReviews
+import os
+import csv
+from kivy.uix.image import AsyncImage
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
 # Custom Styled Button with Rounded Corners
 class StyledButton(Button):
     def __init__(self, **kwargs):
@@ -143,7 +145,7 @@ class ZipCodeScreen(Screen):
         self.label = Label(text="Enter your ZIP Code:", font_size='24sp', bold=True)
         self.layout.add_widget(self.label)
 
-        self.zip_input = TextInput(hint_text="e.g., 33602", multiline=False, font_size='20sp')
+        self.zip_input = TextInput(hint_text="e.g., 32608", multiline=False, font_size='20sp')
         self.layout.add_widget(self.zip_input)
 
         self.submit_button = StyledButton(text="Submit")
@@ -162,18 +164,47 @@ class ZipCodeScreen(Screen):
         else:
             self.label.text = "Invalid ZIP Code! Please enter a 5-digit ZIP."
 
-
 class SortScreen(Screen):
+    CSV_FILE = "saved_restaurants.csv"
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50, 50, 50])
 
-        self.restaurant_label = Label(text="Fetching restaurant recommendations...", font_size='24sp', bold=True)
-        self.layout.add_widget(self.restaurant_label)
+        self.google_reviews = GoogleReviews()  # Initialize GoogleReviews API handler
+        self.saved_restaurants = self.load_saved_restaurants()  # Load saved restaurants
 
-        self.next_button = StyledButton(text="Next Restaurant")
-        self.next_button.bind(on_press=self.show_new_restaurant)
-        self.layout.add_widget(self.next_button)
+        # Restaurant Image (Async loading)
+        self.restaurant_image = AsyncImage(size_hint=(1, None), height=600)
+        self.restaurant_image.bind(on_error=self.set_default_image)  # Handle image errors
+        self.layout.add_widget(self.restaurant_image)
+
+        # Wrap text inside a scrollable label
+        scroll_view = ScrollView(size_hint=(1, 1))
+
+        self.restaurant_label = Label(
+            text="Fetching restaurant recommendations...",
+            font_size='20sp',
+            bold=True,
+            halign="left",
+            valign="top",
+            size_hint_y=None,
+            text_size=(800, None),  # Set text wrapping
+        )
+        self.restaurant_label.bind(texture_size=self._update_label_height)  # Adjust height dynamically
+        scroll_view.add_widget(self.restaurant_label)
+
+        self.layout.add_widget(scroll_view)
+
+        # Add "View Added" button at the bottom-right corner
+        self.view_added_button = Button(
+            text="View Added",
+            size_hint=(None, None),
+            size=(180, 60),
+            pos_hint={"right": 1, "bottom": 1}
+        )
+        self.view_added_button.bind(on_press=self.show_saved_restaurants)
+        self.layout.add_widget(self.view_added_button)
 
         self.add_widget(self.layout)
 
@@ -181,13 +212,14 @@ class SortScreen(Screen):
         self.user_zip = None
         self.user_sort_preference = None
         self.user_diet = None  # Store user's food preference
-        self.api_key = "AIzaSyB0hK-xReABRNcaJw4owXQDCQWrhvURoAA"  # Add your Google Maps API key here
+        self.current_restaurant = None  # Track the currently displayed restaurant
+
+    def _update_label_height(self, instance, size):
+        """Dynamically adjust the label height based on text size."""
+        instance.height = size[1]
 
     def on_pre_enter(self):
         """Fetch recommendations based on user input."""
-        print(f"User sorting preference: {self.user_sort_preference}")
-        print(f"User selected diet: {self.user_diet}")
-
         if not self.user_diet:
             self.user_diet = "Vietnamese"  # Default to avoid crashes
 
@@ -200,45 +232,97 @@ class SortScreen(Screen):
     def show_new_restaurant(self, instance):
         """Fetch and display the next restaurant recommendation."""
         recommendation = self.recommender.get_next_restaurant()
+        self.current_restaurant = recommendation  # Store the current restaurant
 
         if "error" in recommendation:
             self.restaurant_label.text = recommendation["error"]
+            self.restaurant_image.source = "assets/no_image_available.jpg"
         else:
-            self.fetch_additional_info(recommendation, recommendation['name'], recommendation['zipcode'])
-            menu_text = "\n".join([item['name'] for item in recommendation.get('menu', [])]) if isinstance(
-                recommendation.get('menu'), list) else recommendation.get('menu')
-            self.restaurant_label.text = (
-                f"{recommendation['name']}\n"
-                f"{recommendation['address']}\n"
-                f"{recommendation['stars']} Stars ({recommendation['reviews']} Reviews)\n"
-                f"Price: {recommendation['price']}\n"
-                f"{recommendation['categories']}\n"
-                f"Distance: {recommendation.get('distance', 'Distance Not Available')}\n"
-                f"{recommendation['is_open']}"
-                f"Menu:\n{menu_text}"
-
+            # Fetch image from Google Places API
+            photo_url = self.google_reviews.get_place_photo(
+                restaurant_name=recommendation["name"],
+                city=recommendation["address"].split(",")[1].strip(),
+                state=recommendation["address"].split(",")[2].strip(),
             )
+            self.restaurant_image.source = photo_url  # Update restaurant image
 
-    def fetch_additional_info(self, recommendation, name, zipcode):
-        """Fetch additional information about the place using Google Maps API."""
-        query = f"{name} {zipcode}"
-        try:
-            place_info = get_place_info(self.api_key, query)
-            # Print the API response for debugging
-            print(f"API response for {query}: {place_info}")
-            if place_info and place_info.get('status') == 'OK':
-                place_details = place_info['result']
-                rating = place_details.get('rating', 'N/A')
-                price_level = place_details.get('price_level', 'N/A')
-                price = '$' * price_level if isinstance(price_level, int) else 'N/A'
-                # Update the recommendation with the price level
-                recommendation['price'] = price
-                # Fetch menu items
-                menu_items = scrape_yelp_menu(recommendation['name'], recommendation['city'])
-                recommendation['menu'] = menu_items if menu_items else "Menu not available"
+            self.restaurant_label.text = (
+                f"[b]{recommendation['name']}[/b]\n"
+                f"{recommendation['address']}\n"
+                f"[color=#FFD700]{recommendation['stars']} Stars[/color] ({recommendation['reviews']} Reviews)\n"
+                f"[i]Price:[/i] {recommendation['price']}\n"
+                f"{recommendation['categories']}\n"
+                f"[size=40]Distance: {recommendation.get('distance', 'Distance Not Available')}[/size]\n"
+                f"[b]{recommendation['is_open']}[/b]"
+            )
+            self.restaurant_label.markup = True  # Enable text markup for styling
 
-        except Exception as e:
-            print(f"Error fetching additional info: {e}")
+    def on_touch_move(self, touch):
+        """Detects swipe gestures."""
+        if touch.dx > 50:  # Right Swipe
+            self.save_restaurant()
+            self.show_new_restaurant(None)
+        elif touch.dx < -50:  # Left Swipe
+            self.show_new_restaurant(None)
+        return super().on_touch_move(touch)
+
+    def save_restaurant(self):
+        """Saves the current restaurant if not already saved."""
+        if not self.current_restaurant or "error" in self.current_restaurant:
+            return
+
+        restaurant_name = self.current_restaurant["name"]
+
+        # Check if restaurant is already saved
+        if restaurant_name in self.saved_restaurants:
+            print(f"{restaurant_name} is already saved.")
+            return
+
+        # Save to CSV
+        with open(self.CSV_FILE, "a", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow([restaurant_name])
+
+        self.saved_restaurants.add(restaurant_name)  # Add to memory
+        print(f"Saved: {restaurant_name}")
+
+    def load_saved_restaurants(self):
+        """Loads saved restaurants from CSV."""
+        saved = set()
+        if os.path.exists(self.CSV_FILE):
+            with open(self.CSV_FILE, "r", encoding="utf-8") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row:
+                        saved.add(row[0])
+        return saved
+
+    def show_saved_restaurants(self, instance):
+        """Displays a list of saved restaurants in a popup."""
+        content = BoxLayout(orientation="vertical", spacing=10, padding=10)
+
+        if not self.saved_restaurants:
+            label = Label(text="No restaurants saved yet.", font_size="20sp")
+            content.add_widget(label)
+        else:
+            for name in self.saved_restaurants:
+                label = Label(text=name, font_size="20sp", size_hint_y=None, height=40)
+                content.add_widget(label)
+
+        close_button = Button(text="Close", size_hint_y=None, height=50)
+        popup = Popup(title="Saved Restaurants", content=content, size_hint=(None, None), size=(400, 600))
+        close_button.bind(on_press=popup.dismiss)
+        content.add_widget(close_button)
+
+        popup.open()
+
+    def set_default_image(self, instance, error):
+        """Sets a default image if loading fails."""
+        print("Failed to load image, using fallback.")
+        self.restaurant_image.source = "assets/no_image_available.jpg"
+
+
+
 
 class RestaurantTinderApp(App):
     def build(self):
