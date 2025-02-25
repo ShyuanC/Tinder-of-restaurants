@@ -127,7 +127,8 @@ class RestaurantRecommender:
                 "categories": restaurant["categories"],
                 "price": restaurant.get("price", "N/A"),
                 "distance": restaurant.get("distance", "Distance unavailable"),
-                "is_open": "Open" if restaurant["is_open"] == 1 else "Closed"
+                "is_open": "Open" if restaurant["is_open"] == 1 else "Closed",
+                "zipcode": restaurant["postal_code"]
             })
 
         return result
@@ -146,6 +147,9 @@ class RestaurantRecommender:
                 f"Your ZIP Code: {self.user_zip}" if self.user_zip else "ZIP Not Available"
             ),
             "name": restaurant["name"],
+            "address": f"{restaurant['address']}, {restaurant['city']}, {restaurant['state']}, {restaurant['postal_code']}",
+            "city": restaurant["city"],
+            "zipcode": restaurant["postal_code"],
             "address": (
                 f"{restaurant['address']}, {restaurant['city']}, "
                 f"{restaurant['state']}, {restaurant['postal_code']}"
