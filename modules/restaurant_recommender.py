@@ -1,6 +1,6 @@
 import pandas as pd
 import requests
-import random  # 🛠️ For selecting 10 random restaurants
+import random  #  For selecting 10 random restaurants
 
 # Load and preprocess the dataset
 filtered_data = pd.read_csv("cleaned_yelp_data_FL.csv")
@@ -11,7 +11,7 @@ filtered_data["categories"] = filtered_data["categories"].astype(str).fillna("")
 # Ensure 'postal_code' is stored as a string and remove decimals if present
 filtered_data["postal_code"] = filtered_data["postal_code"].astype(str).str.split('.').str[0]
 
-# API Key for ZIP Code Distance Lookup (Replace with your actual API key)
+# API Key for ZIP Code Distance Lookup
 ZIPCODE_API_KEY = "7VsLpmFU8Hkh3ddldrrYMRMIqSAUHmzJOIS7Ig2mpSZvnC0fcSvZ3hzhmFvrSJ9Z"
 
 class RestaurantRecommender:
@@ -20,7 +20,7 @@ class RestaurantRecommender:
         self.recommendations = []
         self.current_index = 0
         self.user_zip = None  # Store user's ZIP code
-        self.zip_distance_cache = {}  # ✅ Cache to store computed ZIP distances
+        self.zip_distance_cache = {}  #  Cache to store computed ZIP distances
 
     def set_user_zip(self, zip_code):
         """Ensure the ZIP code is a string without decimals"""
@@ -33,7 +33,7 @@ class RestaurantRecommender:
         if not self.user_zip or not restaurant_zip:
             return 9999  # Default large value if ZIP is missing
 
-        # ✅ **Check cache first to avoid unnecessary API calls**
+        # **Check cache first to avoid unnecessary API calls**
         if restaurant_zip in self.zip_distance_cache:
             return self.zip_distance_cache[restaurant_zip]
 
@@ -49,7 +49,7 @@ class RestaurantRecommender:
             data = response.json()
             if "distance" in data:
                 distance = round(data['distance'], 2)
-                self.zip_distance_cache[restaurant_zip] = distance  # ✅ Cache result
+                self.zip_distance_cache[restaurant_zip] = distance  #  Cache result
                 return distance
         except requests.exceptions.RequestException:
             print(f"Error fetching distance from API for ZIP {restaurant_zip}. Using default estimate.")
@@ -104,7 +104,6 @@ class RestaurantRecommender:
         return self.get_recommendations_list()
 
     def get_recommendations_list(self):
-        """Return a list of top 10 recommended restaurants."""
         if not self.recommendations:
             return [{"error": "No recommendations available."}]
 
