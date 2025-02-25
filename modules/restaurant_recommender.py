@@ -39,7 +39,8 @@ class RestaurantRecommender:
 
         try:
             response = requests.get(
-                f"https://www.zipcodeapi.com/rest/{ZIPCODE_API_KEY}/distance.json/{self.user_zip}/{restaurant_zip}/mile"
+                f"https://www.zipcodeapi.com/rest/{ZIPCODE_API_KEY}/distance.json/"
+                f"{self.user_zip}/{restaurant_zip}/mile"
             )
 
             if response.status_code == 429:
@@ -111,7 +112,10 @@ class RestaurantRecommender:
         for restaurant in self.recommendations:
             result.append({
                 "name": restaurant["name"],
-                "address": f"{restaurant['address']}, {restaurant['city']}, {restaurant['state']}, {restaurant['postal_code']}",
+                "address": (
+                    f"{restaurant['address']}, {restaurant['city']}, "
+                    f"{restaurant['state']}, {restaurant['postal_code']}"
+                ),
                 "stars": restaurant["stars"],
                 "reviews": restaurant["review_count"],
                 "categories": restaurant["categories"],
@@ -132,9 +136,14 @@ class RestaurantRecommender:
         self.current_index = (self.current_index + 1) % len(self.recommendations)  # Loop over results
 
         return {
-            "user_zip": f"Your ZIP Code: {self.user_zip}" if self.user_zip else "ZIP Not Available",
+            "user_zip": (
+                f"Your ZIP Code: {self.user_zip}" if self.user_zip else "ZIP Not Available"
+            ),
             "name": restaurant["name"],
-            "address": f"{restaurant['address']}, {restaurant['city']}, {restaurant['state']}, {restaurant['postal_code']}",
+            "address": (
+                f"{restaurant['address']}, {restaurant['city']}, "
+                f"{restaurant['state']}, {restaurant['postal_code']}"
+            ),
             "stars": restaurant["stars"],
             "reviews": restaurant["review_count"],
             "categories": restaurant["categories"],

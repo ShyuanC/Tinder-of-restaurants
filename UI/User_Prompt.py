@@ -6,7 +6,9 @@ from kivy.uix.textinput import TextInput
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 from modules.restaurant_recommender import RestaurantRecommender
-
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.image import AsyncImage
+from modules.google_review import GoogleReviews
 
 # Custom Styled Button with Rounded Corners
 class StyledButton(Button):
@@ -140,7 +142,7 @@ class ZipCodeScreen(Screen):
         self.label = Label(text="Enter your ZIP Code:", font_size='24sp', bold=True)
         self.layout.add_widget(self.label)
 
-        self.zip_input = TextInput(hint_text="e.g., 33602", multiline=False, font_size='20sp')
+        self.zip_input = TextInput(hint_text="e.g., 32608", multiline=False, font_size='20sp')
         self.layout.add_widget(self.zip_input)
 
         self.submit_button = StyledButton(text="Submit")
@@ -165,10 +167,31 @@ class SortScreen(Screen):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50, 50, 50])
 
-        self.restaurant_label = Label(text="Fetching restaurant recommendations...", font_size='24sp', bold=True)
-        self.layout.add_widget(self.restaurant_label)
+        self.google_reviews = GoogleReviews()  # Initialize GoogleReviews API handler
 
-        self.next_button = StyledButton(text="Next Restaurant")
+        # Restaurant Image (Async loading)
+        self.restaurant_image = AsyncImage(size_hint=(1, None), height=500)
+        self.restaurant_image.bind(on_error=self.set_default_image)  # Handle image errors
+        self.layout.add_widget(self.restaurant_image)
+
+        # Wrap text inside a scrollable label
+        scroll_view = ScrollView(size_hint=(1, 1))
+
+        self.restaurant_label = Label(
+            text="Fetching restaurant recommendations...",
+            font_size='20sp',
+            bold=True,
+            halign="left",
+            valign="top",
+            size_hint_y=None,
+            text_size=(800, None),  # Set text wrapping
+        )
+        self.restaurant_label.bind(texture_size=self._update_label_height)  # Adjust height dynamically
+        scroll_view.add_widget(self.restaurant_label)
+
+        self.layout.add_widget(scroll_view)
+
+        self.next_button = StyledButton(text="Next ")
         self.next_button.bind(on_press=self.show_new_restaurant)
         self.layout.add_widget(self.next_button)
 
@@ -178,6 +201,10 @@ class SortScreen(Screen):
         self.user_zip = None
         self.user_sort_preference = None
         self.user_diet = None  # Store user's food preference
+
+    def _update_label_height(self, instance, size):
+        """Dynamically adjust the label height based on text size."""
+        instance.height = size[1]
 
     def on_pre_enter(self):
         """Fetch recommendations based on user input."""
@@ -199,16 +226,32 @@ class SortScreen(Screen):
 
         if "error" in recommendation:
             self.restaurant_label.text = recommendation["error"]
+            self.restaurant_image.source = "assets/no_image_available.jpg"  # Use local image instead
         else:
-            self.restaurant_label.text = (
-                f"{recommendation['name']}\n"
-                f"{recommendation['address']}\n"
-                f"{recommendation['stars']} Stars ({recommendation['reviews']} Reviews)\n"  
-                f"Price: {recommendation['price']}\n"
-                f"{recommendation['categories']}\n"
-                f"Distance: {recommendation.get('distance', 'Distance Not Available')}\n"
-                f"{recommendation['is_open']}"
+            # Fetch image from Google Places API
+            photo_url = self.google_reviews.get_place_photo(
+                restaurant_name=recommendation["name"],
+                city=recommendation["address"].split(",")[1].strip(),
+                state=recommendation["address"].split(",")[2].strip(),
             )
+            self.restaurant_image.source = photo_url  # Update restaurant image
+
+            self.restaurant_label.text = (
+                f"[b]{recommendation['name']}[/b]\n"
+                f"{recommendation['address']}\n"
+                f"[color=#FFD700]{recommendation['stars']} Stars[/color] ({recommendation['reviews']} Reviews)\n"
+                f"[i]Price:[/i] {recommendation['price']}\n"
+                f"{recommendation['categories']}\n"
+                f"[size=40]Distance: {recommendation.get('distance', 'Distance Not Available')}[/size]\n"
+                f"[b]{recommendation['is_open']}[/b]"
+            )
+            self.restaurant_label.markup = True  # Enable text markup for styling
+
+    def set_default_image(self, instance, error):
+        """Sets a default image if loading fails."""
+        print("Failed to load image, using fallback.")
+        self.restaurant_image.source = "assets/no_image_available.jpg"
+
 
 
 class RestaurantTinderApp(App):
