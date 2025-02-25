@@ -6,6 +6,9 @@ from kivy.uix.textinput import TextInput
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.screenmanager import ScreenManager, Screen
 from modules.restaurant_recommender import RestaurantRecommender
+from modules.google_map_Module import get_place_info
+from modules.menu_module import scrape_yelp_menu
+
 
 
 # Custom Styled Button with Rounded Corners
@@ -178,6 +181,7 @@ class SortScreen(Screen):
         self.user_zip = None
         self.user_sort_preference = None
         self.user_diet = None  # Store user's food preference
+        self.api_key = "AIzaSyB0hK-xReABRNcaJw4owXQDCQWrhvURoAA"  # Add your Google Maps API key here
 
     def on_pre_enter(self):
         """Fetch recommendations based on user input."""
@@ -200,16 +204,41 @@ class SortScreen(Screen):
         if "error" in recommendation:
             self.restaurant_label.text = recommendation["error"]
         else:
+            self.fetch_additional_info(recommendation, recommendation['name'], recommendation['zipcode'])
+            menu_text = "\n".join([item['name'] for item in recommendation.get('menu', [])]) if isinstance(
+                recommendation.get('menu'), list) else recommendation.get('menu')
             self.restaurant_label.text = (
                 f"{recommendation['name']}\n"
                 f"{recommendation['address']}\n"
-                f"{recommendation['stars']} Stars ({recommendation['reviews']} Reviews)\n"  
+                f"{recommendation['stars']} Stars ({recommendation['reviews']} Reviews)\n"
                 f"Price: {recommendation['price']}\n"
                 f"{recommendation['categories']}\n"
                 f"Distance: {recommendation.get('distance', 'Distance Not Available')}\n"
                 f"{recommendation['is_open']}"
+                f"Menu:\n{menu_text}"
+
             )
 
+    def fetch_additional_info(self, recommendation, name, zipcode):
+        """Fetch additional information about the place using Google Maps API."""
+        query = f"{name} {zipcode}"
+        try:
+            place_info = get_place_info(self.api_key, query)
+            # Print the API response for debugging
+            print(f"API response for {query}: {place_info}")
+            if place_info and place_info.get('status') == 'OK':
+                place_details = place_info['result']
+                rating = place_details.get('rating', 'N/A')
+                price_level = place_details.get('price_level', 'N/A')
+                price = '$' * price_level if isinstance(price_level, int) else 'N/A'
+                # Update the recommendation with the price level
+                recommendation['price'] = price
+                # Fetch menu items
+                menu_items = scrape_yelp_menu(recommendation['name'], recommendation['city'])
+                recommendation['menu'] = menu_items if menu_items else "Menu not available"
+
+        except Exception as e:
+            print(f"Error fetching additional info: {e}")
 
 class RestaurantTinderApp(App):
     def build(self):

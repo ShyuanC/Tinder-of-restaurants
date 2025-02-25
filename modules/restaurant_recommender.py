@@ -3,7 +3,7 @@ import requests
 import random  # 🛠️ For selecting 10 random restaurants
 
 # Load and preprocess the dataset
-filtered_data = pd.read_csv("cleaned_yelp_data_FL.csv")
+filtered_data = pd.read_csv("../cleaned_yelp_data_FL.csv")
 
 # Ensure 'categories' column contains only strings and replaces NaN with an empty string
 filtered_data["categories"] = filtered_data["categories"].astype(str).fillna("").str.lower()
@@ -12,7 +12,7 @@ filtered_data["categories"] = filtered_data["categories"].astype(str).fillna("")
 filtered_data["postal_code"] = filtered_data["postal_code"].astype(str).str.split('.').str[0]
 
 # API Key for ZIP Code Distance Lookup (Replace with your actual API key)
-ZIPCODE_API_KEY = "7VsLpmFU8Hkh3ddldrrYMRMIqSAUHmzJOIS7Ig2mpSZvnC0fcSvZ3hzhmFvrSJ9Z"
+ZIPCODE_API_KEY = "eAoueEwEzqdiV0rhYzl1Z0KokRVDcLzAPhnLoOoVwU0q5jzqNJz3TBuBrmzrofEF"
 
 class RestaurantRecommender:
     def __init__(self):
@@ -118,7 +118,8 @@ class RestaurantRecommender:
                 "categories": restaurant["categories"],
                 "price": restaurant.get("price", "N/A"),
                 "distance": restaurant.get("distance", "Distance unavailable"),
-                "is_open": "Open" if restaurant["is_open"] == 1 else "Closed"
+                "is_open": "Open" if restaurant["is_open"] == 1 else "Closed",
+                "zipcode": restaurant["postal_code"]
             })
 
         return result
@@ -136,6 +137,8 @@ class RestaurantRecommender:
             "user_zip": f"Your ZIP Code: {self.user_zip}" if self.user_zip else "ZIP Not Available",
             "name": restaurant["name"],
             "address": f"{restaurant['address']}, {restaurant['city']}, {restaurant['state']}, {restaurant['postal_code']}",
+            "city": restaurant["city"],
+            "zipcode": restaurant["postal_code"],
             "stars": restaurant["stars"],
             "reviews": restaurant["review_count"],
             "categories": restaurant["categories"],
