@@ -56,10 +56,10 @@ However, the Zipcode API has a rate limit of 10 requests per hour and is only ca
 
 
 4. Running the Program
-The program is best run in the following environments: Spyder, VS Code or PyCharm.
+The program is best run in the following environments: Spyder, VS Code, or PyCharm.
 Run Opening_Page.py to start Tinder of Restaurants! 
 
-UNFORTUNATELY, I couldn’t find any way as CMake to build python code, so that you don’t have to looking for which file to run with, but you can, use the following command line to run: 
+UNFORTUNATELY, I couldn’t find any way as CMake to build Python code so that you don’t have to look for which file to run with, but you can use the following command line to run: 
 
 
    pip install pyinstaller
@@ -67,7 +67,7 @@ UNFORTUNATELY, I couldn’t find any way as CMake to build python code, so that 
 
 
 5. Resolution
-Since this app is made for mobile devices, the different size of a monitor of testers might have a different experience, for example the size of (500, 1200) is good for Mac screen, however it looks a bit off on a 2k desktop monitor. So please feel free to adjust the window size: 
+Since this app is made for mobile devices, the different size of a monitor of testers might have a different experience, for example the size of (500, 1200) is good for Mac screens, however it looks a bit off on a 2k desktop monitor. So please feel free to adjust the window size: 
 In Opening_Page.py, search for (ctrl +F ): 
 
        Window.size = (500 ,1280)
