@@ -1,9 +1,13 @@
+import os
 import pandas as pd
 import requests
 import random  #  For selecting 10 random restaurants
 
-# Load and preprocess the dataset
-filtered_data = pd.read_csv("cleaned_yelp_data_FL.csv")
+def asset_path(filename):
+    return os.path.join(os.path.dirname(__file__), '..', filename)
+
+csv_path = asset_path("cleaned_yelp_data_FL.csv")
+filtered_data = pd.read_csv(csv_path)
 
 # Ensure 'categories' column contains only strings and replaces NaN with an empty string
 filtered_data["categories"] = filtered_data["categories"].astype(str).fillna("").str.lower()

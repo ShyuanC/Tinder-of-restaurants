@@ -55,10 +55,12 @@ class BaseScreen(Screen):
         )
         layout.add_widget(header)
 
+        def asset_path(filename):
+            return os.path.join(os.path.dirname(__file__), '..', 'assets', filename)
         # Background Image
         with self.canvas.before:
             Color(1, 1, 1, 0.75)
-            self.bg = Rectangle(source='assets/food.jpg',
+            self.bg = Rectangle(source=asset_path('food.jpg'),
                                 pos=(0, self.height * 0.4),
                                 size=(self.width, self.height * 0.25))
             self.bind(size=self._update_bg, pos=self._update_bg)
