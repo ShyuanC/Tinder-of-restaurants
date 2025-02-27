@@ -59,7 +59,7 @@ However, the Zipcode API has a rate limit of 10 requests per hour and is only ca
 The program is best run in the following environments: Spyder, VS Code or PyCharm.
 Run Opening_Page.py to start Tinder of Restaurants! 
 
-UNFORTUNATELY, I couldn’t find any way like CMake to build python code, so that you don’t have to looking for which file to run with, but you can, use the following command line to run: 
+UNFORTUNATELY, I couldn’t find any way as CMake to build python code, so that you don’t have to looking for which file to run with, but you can, use the following command line to run: 
 
 
    pip install pyinstaller
