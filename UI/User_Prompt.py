@@ -20,20 +20,64 @@ class StyledButton(Button):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (None, None)
-        self.size = (250, 70)
+        self.size = (280, 75)
         self.font_size = '22sp'
         self.color = (1, 1, 1, 1)
-        self.background_color = (0, 0, 0, 0)  # Transparent background
-        self.border = (20, 20, 20, 20)
+        self.background_color = (0, 0, 0, 0)
+        self.bold = True
 
         with self.canvas.before:
-            Color(0.15, 0.5, 0.25, 1)
-            self.rounded_rect = RoundedRectangle(size=self.size, pos=self.pos, radius=[30])
-            self.bind(pos=self._update_rect, size=self._update_rect)
+            Color(0.1, 0.6, 0.9, 1)  # Vibrant blue
+            self.rect = RoundedRectangle(size=self.size, pos=self.pos, radius=[25])
 
-    def _update_rect(self, instance, value):
-        self.rounded_rect.pos = instance.pos
-        self.rounded_rect.size = instance.size
+        self.bind(pos=self.update_graphics, size=self.update_graphics)
+
+    def update_graphics(self, *args):
+        self.rect.size = self.size
+        self.rect.pos = self.pos
+
+
+# Enhanced Label with Modern Styling
+class StyledLabel(Label):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.font_size = '26sp'
+        self.bold = True
+        self.color = (0.15, 0.15, 0.15, 1)
+        self.size_hint_y = None
+        self.height = 50
+
+
+# Main App Layout
+class RestaurantApp(App):
+    def build(self):
+        layout = BoxLayout(orientation='vertical', padding=25, spacing=20, size_hint=(1, 1))
+
+        # Header with Background Color
+        header = BoxLayout(size_hint=(1, None), height=100)
+        with header.canvas.before:
+            Color(0.1, 0.6, 0.9, 1)
+            self.bg = RoundedRectangle(size=header.size, pos=header.pos, radius=[0, 0, 25, 25])
+        header.bind(size=self.update_header, pos=self.update_header)
+
+        title_label = StyledLabel(text='Find Your Favorite Restaurant!', font_size='30sp', color=(1, 1, 1, 1))
+        header.add_widget(title_label)
+        layout.add_widget(header)
+
+        # Input Field
+        self.input_field = TextInput(hint_text='Enter cuisine, location...', font_size='22sp', size_hint=(1, None),
+                                     height=70, padding=[15, 15])
+        layout.add_widget(self.input_field)
+
+        # Search Button
+        search_button = StyledButton(text='Search')
+        layout.add_widget(search_button)
+
+        return layout
+
+    def update_header(self, instance, value):
+        self.bg.size = instance.size
+        self.bg.pos = instance.pos
 
 
 # Base Screen Class with Background Image
