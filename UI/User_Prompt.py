@@ -263,10 +263,9 @@ class SortScreen(Screen):
 
             self.restaurant_label.text = (
                 f"[b]{recommendation['name']}[/b]\n"
-                f"{recommendation['address']}\n"
-                f"[color=#FFD700]{recommendation['stars']} Stars[/color] ({recommendation['reviews']} Reviews)\n"
-                f"[i]Price:[/i] {recommendation['price']}\n"
-                f"{recommendation['categories']}\n"
+                f"{recommendation['address']}\n\n"
+                f"[color=#139ba2]{recommendation['stars']} Stars[/color] ({recommendation['reviews']} Reviews)\n"
+                f"[size=40]Categories: {recommendation['categories']}\n"
                 f"[size=40]Distance: {recommendation.get('distance', 'Distance Not Available')}[/size]\n"
                 f"[b]{recommendation['is_open']}[/b]"
             )
