@@ -13,6 +13,8 @@ import csv
 from kivy.uix.image import AsyncImage
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
+from modules.menu_module import scrape_yelp_menu  # Import Yelp menu scraper
+
 # Custom Styled Button with Rounded Corners
 class StyledButton(Button):
     def __init__(self, **kwargs):
@@ -203,6 +205,17 @@ class SortScreen(Screen):
             size=(180, 60),
             pos_hint={"right": 1, "bottom": 1}
         )
+        # Add "View Menu" button below the restaurant info
+        self.view_menu_button = Button(
+            text="View Menu",
+            size_hint=(None, None),
+            size=(180, 60),
+            pos_hint={"right": 1, "bottom": 1}
+        )
+
+        self.view_menu_button.bind(on_press=self.show_menu)
+        self.layout.add_widget(self.view_menu_button)
+
         self.view_added_button.bind(on_press=self.show_saved_restaurants)
         self.layout.add_widget(self.view_added_button)
 
@@ -296,6 +309,38 @@ class SortScreen(Screen):
                     if row:
                         saved.add(row[0])
         return saved
+
+    def show_menu(self, instance):
+        """Fetches and displays the menu for the current restaurant."""
+        if not self.current_restaurant or "error" in self.current_restaurant:
+            return
+
+        restaurant_name = self.current_restaurant["name"]
+        city = self.current_restaurant["address"].split(",")[1].strip()
+
+        menu_items = scrape_yelp_menu(restaurant_name, city)
+
+        content = BoxLayout(orientation="vertical", spacing=10, padding=10)
+
+        if not menu_items:
+            label = Label(text="No menu available.", font_size="20sp")
+            content.add_widget(label)
+        else:
+            for item in menu_items:
+                menu_label = Label(
+                    text=f"{item['name']}: {item['price']}",
+                    font_size="18sp",
+                    size_hint_y=None,
+                    height=40
+                )
+                content.add_widget(menu_label)
+
+        close_button = Button(text="Close", size_hint_y=None, height=50)
+        popup = Popup(title=f"{restaurant_name} - Menu", content=content, size_hint=(None, None), size=(500, 700))
+        close_button.bind(on_press=popup.dismiss)
+        content.add_widget(close_button)
+
+        popup.open()
 
     def show_saved_restaurants(self, instance):
         """Displays a list of saved restaurants in a popup."""

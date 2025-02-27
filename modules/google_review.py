@@ -80,3 +80,4 @@ class GoogleReviews:
         self.places_cache[restaurant_name] = photo_url
 
         return photo_url
+
