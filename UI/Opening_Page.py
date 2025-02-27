@@ -8,7 +8,7 @@ import os
 class OpeningPage(App):
     def build(self):
         Window.size = (500 ,1280)
-        Window.clearcolor = (1, 0.71, 0.1, 0.9)
+        Window.clearcolor = (0.925, 0.714, 0.208, 1)
 
         def asset_path(filename):
             return os.path.join(os.path.dirname(__file__), '..', 'assets', filename)
